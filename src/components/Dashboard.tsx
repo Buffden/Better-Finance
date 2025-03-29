@@ -4,6 +4,7 @@ import ExpenseOverview from "./ExpenseOverview";
 import ExpenseList from "./ExpenseList";
 import BudgetManager from "./BudgetManager";
 import AIInsights from "./AIInsights";
+import LandingPage from "./LandingPage";
 import { Upload, Plus, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,6 +88,11 @@ const Dashboard = ({
   const handleIncomeCancel = () => {
     setIsEditingIncome(false);
   };
+
+  // Show landing page if there are no expenses and we're on the dashboard view
+  if (expenses.length === 0 && activeView === "dashboard") {
+    return <LandingPage onUploadInvoice={onUploadInvoice} />;
+  }
 
   return (
     <div className="p-6 relative">
@@ -194,7 +200,7 @@ const Dashboard = ({
       {activeView === "expenses" && (
         <ExpenseList 
           expenses={expenses} 
-          categories={categories}
+          categories={categories} 
           onUpdateCategory={handleUpdateCategory}
           showCategorySelect={true}
         />
