@@ -1,17 +1,17 @@
-
 import { useState } from "react";
 import Dashboard from "@/components/Dashboard";
 import Sidebar from "@/components/Sidebar";
 import AddExpenseModal from "@/components/AddExpenseModal";
 import { Expense, Category, Budget } from "@/types/finance";
 import { useToast } from "@/components/ui/use-toast";
-import { initialCategories, initialExpenses } from "@/data/sampleData";
+import { defaultCategories } from "@/data/defaultCategories";
+import { processInvoiceWithGemini } from "@/lib/gemini";
 
 const Index = () => {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [categories] = useState<Category[]>(initialCategories);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories] = useState<Category[]>(defaultCategories);
   const [budgets, setBudgets] = useState<Budget[]>(
-    initialCategories.map((category) => ({
+    defaultCategories.map((category) => ({
       categoryId: category.id,
       amount: category.defaultBudget || 0,
     }))
@@ -52,29 +52,34 @@ const Index = () => {
   };
 
   const uploadInvoice = async (file: File) => {
-    // In a real app, we would process the invoice with Gemini API here
-    toast({
-      title: "Processing invoice",
-      description: "Your invoice is being processed...",
-    });
-
-    // Simulate AI processing with a timeout
-    setTimeout(() => {
-      const mockExpense: Expense = {
-        id: `exp-${Date.now()}`,
-        amount: Math.floor(Math.random() * 100) + 10,
-        categoryId: "food",
-        date: new Date().toISOString(),
-        description: `Invoice: ${file.name}`,
-        paymentMethod: "card",
-      };
-
-      setExpenses([...expenses, mockExpense]);
+    try {
       toast({
-        title: "Invoice processed",
-        description: `Expense of $${mockExpense.amount.toFixed(2)} added from invoice`,
+        title: "Processing bank statement",
+        description: "Your statement is being processed with AI...",
       });
-    }, 2000);
+
+      // Process the bank statement with Gemini AI
+      const processedTransactions = await processInvoiceWithGemini(file);
+      
+      // Add each transaction as an expense
+      const newExpenses = processedTransactions.map(transaction => ({
+        id: `exp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...transaction
+      }));
+
+      setExpenses(prevExpenses => [...prevExpenses, ...newExpenses]);
+      
+      toast({
+        title: "Statement processed successfully",
+        description: `Added ${newExpenses.length} transactions from your bank statement`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error processing statement",
+        description: error instanceof Error ? error.message : "Failed to process statement",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

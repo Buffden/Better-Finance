@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { Expense, Category } from "@/types/finance";
 import {
@@ -8,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatDistance } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -31,10 +31,13 @@ const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount);
+      signDisplay: 'never',
+    }).format(Math.abs(amount));
+    
+    return amount >= 0 ? `+${formatted}` : `-${formatted}`;
   };
 
   const formatDateDistance = (dateString: string) => {
@@ -44,7 +47,7 @@ const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Expenses</CardTitle>
+        <CardTitle>Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent>
         {sortedExpenses.length > 0 ? (
@@ -70,7 +73,10 @@ const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
                     </p>
                   </div>
                 </div>
-                <span className="font-semibold">
+                <span className={cn(
+                  "font-semibold",
+                  expense.amount >= 0 ? "text-green-600" : "text-red-600"
+                )}>
                   {formatCurrency(expense.amount)}
                 </span>
               </div>
@@ -78,7 +84,7 @@ const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
           </div>
         ) : (
           <div className="text-center py-6 text-gray-500">
-            No expenses recorded yet
+            No transactions recorded yet
           </div>
         )}
       </CardContent>
