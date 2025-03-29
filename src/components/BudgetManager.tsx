@@ -30,6 +30,7 @@ const BudgetManager = ({
   );
 
   const calculateCategoryTotal = (categoryId: string) => {
+    // Only consider expenses (negative amounts) for budget tracking
     return Math.abs(expenses
       .filter((expense) => expense.categoryId === categoryId && expense.amount < 0)
       .reduce((total, expense) => total + expense.amount, 0));
@@ -64,13 +65,14 @@ const BudgetManager = ({
   const chartData = categories.map((category) => {
     const spent = calculateCategoryTotal(category.id);
     const budget = getBudgetAmount(category.id);
-    const remaining = Math.max(0, budget - spent);
+    const remaining = budget - spent;
     
     return {
       name: category.name,
       spent: spent,
       budget: budget,
-      remaining: remaining,
+      remaining: remaining > 0 ? remaining : 0,
+      overspent: remaining < 0 ? Math.abs(remaining) : 0,
       id: category.id,
       color: category.color,
     };
@@ -79,21 +81,25 @@ const BudgetManager = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const isOverBudget = data.spent > data.budget;
-      const difference = Math.abs(data.spent - data.budget);
-
+      const isOverspent = data.spent > data.budget;
+      
       return (
         <div className="bg-white p-3 shadow-md rounded-md border">
           <p className="font-semibold">{data.name}</p>
           <p className="text-sm">Budget: {formatCurrency(data.budget)}</p>
           <p className="text-sm">Spent: {formatCurrency(data.spent)}</p>
-          {data.budget > 0 && (
-            <p className={`text-sm ${isOverBudget ? 'text-red-500' : 'text-green-500'}`}>
-              {isOverBudget 
-                ? `Overspent: ${formatCurrency(difference)}` 
-                : `Remaining: ${formatCurrency(difference)}`}
+          {isOverspent ? (
+            <p className="text-sm text-red-500">
+              Overspent: {formatCurrency(data.overspent)}
+            </p>
+          ) : (
+            <p className="text-sm text-green-500">
+              Remaining: {formatCurrency(data.remaining)}
             </p>
           )}
+          <p className="text-xs text-gray-500 mt-1">
+            {((data.spent / data.budget) * 100).toFixed(1)}% of budget used
+          </p>
         </div>
       );
     }
@@ -102,7 +108,7 @@ const BudgetManager = ({
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden">
+      <Card>
         <CardHeader>
           <CardTitle>Budget vs. Spending</CardTitle>
           <CardDescription>

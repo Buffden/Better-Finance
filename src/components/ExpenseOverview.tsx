@@ -9,48 +9,44 @@ interface ExpenseOverviewProps {
 }
 
 const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
-  console.log('ExpenseOverview rendered with:', { 
-    expensesCount: expenses?.length, 
-    categoriesCount: categories?.length 
-  });
-
   const chartData = useMemo(() => {
-    if (!expenses || expenses.length === 0) {
-      console.log('No expenses provided');
-      return [];
-    }
+    // Separate credits and debits
+    const credits = expenses.filter(exp => exp.amount > 0);
+    const debits = expenses.filter(exp => exp.amount < 0);
 
-    console.log('Processing expenses:', expenses);
-
-    // Calculate category totals for expenses
-    const categoryTotals = expenses.reduce((acc, expense) => {
+    // Calculate category totals for debits (expenses)
+    const categoryTotals = debits.reduce((acc, expense) => {
       const categoryId = expense.categoryId;
       if (!acc[categoryId]) {
         acc[categoryId] = 0;
       }
-      // Use absolute value for display
       acc[categoryId] += Math.abs(expense.amount);
       return acc;
     }, {} as Record<string, number>);
 
-    console.log('Category totals:', categoryTotals);
+    // Calculate total income
+    const totalIncome = credits.reduce((sum, expense) => sum + expense.amount, 0);
 
     // Create data for expenses by category
-    const expenseData = categories
-      .map((category) => {
-        const value = categoryTotals[category.id] || 0;
-        if (value === 0) return null; // Skip categories with no expenses
-        return {
-          name: category.name,
-          value,
-          color: category.color || '#888', // Fallback color
-          id: category.id,
-          type: 'expense'
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
+    const expenseData = categories.map((category) => ({
+      name: category.name,
+      value: categoryTotals[category.id] || 0,
+      color: category.color,
+      id: category.id,
+      type: 'expense'
+    })).filter(item => item.value > 0);
 
-    console.log('Final chart data:', expenseData);
+    // Add income data if there is any
+    if (totalIncome > 0) {
+      expenseData.push({
+        name: 'Income',
+        value: totalIncome,
+        color: '#22c55e', // Green color for income
+        id: 'income',
+        type: 'income'
+      });
+    }
+
     return expenseData;
   }, [expenses, categories]);
 
@@ -90,25 +86,19 @@ const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
       <CardContent>
         <div className="h-[300px] w-full">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
                 <Pie
                   data={chartData}
-                  dataKey="value"
-                  nameKey="name"
                   cx="50%"
                   cy="50%"
+                  labelLine={false}
                   outerRadius={100}
-                  innerRadius={60}
-                  paddingAngle={5}
-                  minAngle={15}
+                  fill="#8884d8"
+                  dataKey="value"
                 >
                   {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.color} 
-                      strokeWidth={2}
-                    />
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
@@ -116,7 +106,7 @@ const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500">
-              No transactions recorded yet ({expenses?.length ?? 0} expenses, {categories?.length ?? 0} categories)
+              No transactions recorded yet
             </div>
           )}
         </div>

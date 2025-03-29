@@ -36,7 +36,10 @@ const trustedSources = {
   budgeting: "https://www.mint.com/budgeting-3/50-30-20-budget-rule",
   foodSavings: "https://www.consumer.gov/articles/1002-making-food-dollars-stretch",
   transportSavings: "https://www.consumer.gov/articles/1002-saving-money-on-transportation",
-  emergencyFund: "https://www.nerdwallet.com/article/banking/emergency-fund-how-much-how-to-build-it"
+  emergencyFund: "https://www.nerdwallet.com/article/banking/emergency-fund-how-much-to-build",
+  creditScore: "https://www.consumerfinance.gov/about-us/blog/how-to-improve-your-credit-score/",
+  debtManagement: "https://www.nerdwallet.com/article/finance/debt-management-strategies",
+  retirement: "https://www.investopedia.com/retirement-planning-4689695"
 };
 
 const AIInsights = ({ expenses, categories, budgets }: AIInsightsProps) => {
@@ -227,10 +230,105 @@ const AIInsights = ({ expenses, categories, budgets }: AIInsightsProps) => {
       });
     }
 
+    // Add personalized AI advice card
+    const generatePersonalizedAdvice = () => {
+      const credits = expenses.filter(exp => exp.amount > 0);
+      const debits = expenses.filter(exp => exp.amount < 0);
+      const totalIncome = credits.reduce((sum, exp) => sum + exp.amount, 0);
+      const totalExpenses = Math.abs(debits.reduce((sum, exp) => sum + exp.amount, 0));
+      const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+      
+      const categoryTotals = debits.reduce((acc, expense) => {
+        const categoryId = expense.categoryId;
+        if (!acc[categoryId]) acc[categoryId] = 0;
+        acc[categoryId] += Math.abs(expense.amount);
+        return acc;
+      }, {} as Record<string, number>);
+
+      const overBudgetCategories = Object.entries(categoryTotals)
+        .filter(([categoryId, spent]) => {
+          const budget = budgets.find(b => b.categoryId === categoryId)?.amount || 0;
+          return budget > 0 && spent > budget;
+        })
+        .map(([categoryId]) => categories.find(c => c.id === categoryId)?.name);
+
+      const advice = [];
+
+      // Savings Rate Advice
+      if (savingsRate < 20) {
+        advice.push({
+          title: "Increase Your Savings",
+          tip: "Try to save at least 20% of your income. Consider automating your savings by setting up automatic transfers to a savings account.",
+          source: trustedSources.savings
+        });
+      }
+
+      // Emergency Fund Advice
+      if (totalIncome > 0) {
+        advice.push({
+          title: "Build Emergency Fund",
+          tip: "Aim to save 3-6 months of living expenses in an easily accessible emergency fund.",
+          source: trustedSources.emergencyFund
+        });
+      }
+
+      // Budget Management
+      if (overBudgetCategories.length > 0) {
+        advice.push({
+          title: "Budget Management",
+          tip: `You're over budget in ${overBudgetCategories.join(", ")}. Review these categories and look for ways to reduce spending.`,
+          source: trustedSources.budgeting
+        });
+      }
+
+      // Investment Advice
+      if (savingsRate > 20) {
+        advice.push({
+          title: "Investment Opportunities",
+          tip: "Consider investing your extra savings in a diversified portfolio. Look into index funds or retirement accounts for long-term growth.",
+          source: trustedSources.investing
+        });
+      }
+
+      // Debt Management
+      const hasHighExpenses = totalExpenses > totalIncome * 0.7;
+      if (hasHighExpenses) {
+        advice.push({
+          title: "Debt Management",
+          tip: "Your expenses are high relative to income. Consider debt consolidation or creating a debt repayment plan.",
+          source: trustedSources.debtManagement
+        });
+      }
+
+      // Retirement Planning
+      if (totalIncome > totalExpenses) {
+        advice.push({
+          title: "Retirement Planning",
+          tip: "Make sure you're contributing to retirement accounts. Consider increasing contributions if you're saving more than 20% of income.",
+          source: trustedSources.retirement
+        });
+      }
+
+      return advice;
+    };
+
+    const personalizedAdvice = generatePersonalizedAdvice();
+    
+    if (personalizedAdvice.length > 0) {
+      result.push({
+        title: "Your Personal Finance Advisor",
+        message: "Based on your spending patterns and financial goals, here are some personalized recommendations:",
+        icon: Lightbulb,
+        color: "text-purple-500",
+        advice: personalizedAdvice,
+        priority: true
+      });
+    }
+
     return result;
   }, [expenses, categories, budgets]);
 
-  // Sort insights to prioritize investment opportunity
+  // Sort insights to prioritize investment opportunity and advice
   const sortedInsights = [...insights].sort((a, b) => {
     if (a.priority) return -1;
     if (b.priority) return 1;
@@ -239,15 +337,6 @@ const AIInsights = ({ expenses, categories, budgets }: AIInsightsProps) => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-blue-50 to-white">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-blue-900">AI-Powered Financial Insights</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-blue-700">Get personalized recommendations and actionable insights to improve your financial health.</p>
-        </CardContent>
-      </Card>
-
       {sortedInsights.map((insight, index) => (
         <Card 
           key={index}
@@ -257,41 +346,47 @@ const AIInsights = ({ expenses, categories, budgets }: AIInsightsProps) => {
             insight.color === "text-green-500" && "border-green-100",
             insight.color === "text-amber-500" && "border-amber-100",
             insight.color === "text-blue-500" && "border-blue-100",
-            insight.priority && "border-2 border-blue-500 shadow-lg bg-gradient-to-br from-blue-50 to-white"
+            insight.color === "text-purple-500" && "border-purple-100",
+            insight.priority && "border-2 border-purple-500 shadow-lg bg-gradient-to-br from-purple-50 to-white"
           )}
         >
           <CardHeader className={cn(
             "flex flex-row items-center justify-between space-y-0 pb-2",
-            insight.priority && "border-b border-blue-200"
+            insight.priority && "border-b border-purple-200"
           )}>
             <CardTitle className={cn(
               "text-sm font-medium flex items-center gap-2",
-              insight.priority && "text-blue-900 text-base"
+              insight.priority && "text-purple-900 text-base"
             )}>
               <insight.icon className={cn("h-4 w-4", insight.color, insight.priority && "h-5 w-5")} />
               {insight.title}
             </CardTitle>
-            {insight.source && (
-              <a
-                href={insight.source}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1",
-                  insight.priority && "text-blue-700 font-medium"
-                )}
-              >
-                Learn more
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
           </CardHeader>
           <CardContent>
             <div className={cn(
               "text-sm text-gray-600 whitespace-pre-line leading-relaxed",
-              insight.priority && "text-gray-700 font-medium"
+              insight.priority && "text-gray-700"
             )}>
               {insight.message}
+              
+              {insight.advice && (
+                <div className="mt-4 space-y-4">
+                  {insight.advice.map((item, i) => (
+                    <div key={i} className="bg-white rounded-lg p-4 border border-purple-100">
+                      <h4 className="font-semibold text-purple-900 mb-2">{item.title}</h4>
+                      <p className="text-gray-600 mb-2">{item.tip}</p>
+                      <a
+                        href={item.source}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                      >
+                        Learn more <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
