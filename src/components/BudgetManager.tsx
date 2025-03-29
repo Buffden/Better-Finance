@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Expense, Category, Budget } from "@/types/finance";
 import {
@@ -31,9 +30,9 @@ const BudgetManager = ({
   );
 
   const calculateCategoryTotal = (categoryId: string) => {
-    return expenses
-      .filter((expense) => expense.categoryId === categoryId)
-      .reduce((total, expense) => total + expense.amount, 0);
+    return Math.abs(expenses
+      .filter((expense) => expense.categoryId === categoryId && expense.amount < 0)
+      .reduce((total, expense) => total + expense.amount, 0));
   };
 
   const handleBudgetChange = (categoryId: string, value: string) => {
@@ -75,21 +74,26 @@ const BudgetManager = ({
       id: category.id,
       color: category.color,
     };
-  }).filter(item => item.budget > 0);
+  }).filter(item => item.budget > 0 || item.spent > 0);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const isOverBudget = data.spent > data.budget;
+      const difference = Math.abs(data.spent - data.budget);
+
       return (
         <div className="bg-white p-3 shadow-md rounded-md border">
           <p className="font-semibold">{data.name}</p>
           <p className="text-sm">Budget: {formatCurrency(data.budget)}</p>
           <p className="text-sm">Spent: {formatCurrency(data.spent)}</p>
-          <p className="text-sm">
-            {data.spent <= data.budget 
-              ? `Remaining: ${formatCurrency(data.remaining)}` 
-              : `Overspent: ${formatCurrency(data.spent - data.budget)}`}
-          </p>
+          {data.budget > 0 && (
+            <p className={`text-sm ${isOverBudget ? 'text-red-500' : 'text-green-500'}`}>
+              {isOverBudget 
+                ? `Overspent: ${formatCurrency(difference)}` 
+                : `Remaining: ${formatCurrency(difference)}`}
+            </p>
+          )}
         </div>
       );
     }
