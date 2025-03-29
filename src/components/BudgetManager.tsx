@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { cn } from "@/lib/utils";
 
 interface BudgetManagerProps {
   expenses: Expense[];
@@ -171,11 +172,14 @@ const BudgetManager = ({
                       <span>{category.name}</span>
                     </div>
                     <span
-                      className={
-                        spent > budget && budget > 0
-                          ? "text-red-500 font-medium"
-                          : "text-gray-600"
-                      }
+                      className={cn(
+                        "font-medium transition-colors duration-300",
+                        percentage > 100 && "text-red-500",
+                        percentage > 90 && percentage <= 100 && "text-red-400",
+                        percentage > 75 && percentage <= 90 && "text-orange-400",
+                        percentage > 50 && percentage <= 75 && "text-yellow-600",
+                        percentage <= 50 && "text-green-500"
+                      )}
                     >
                       {formatCurrency(spent)} / {formatCurrency(budget)}
                     </span>
@@ -183,7 +187,23 @@ const BudgetManager = ({
                   
                   <Progress
                     value={percentage}
-                    className={spent > budget && budget > 0 ? "bg-red-100" : ""}
+                    className={cn(
+                      "transition-colors duration-500",
+                      percentage > 100 && "bg-red-100 animate-pulse",
+                      percentage > 90 && percentage <= 100 && "bg-red-50",
+                      percentage > 75 && percentage <= 90 && "bg-orange-50",
+                      percentage > 50 && percentage <= 75 && "bg-yellow-50",
+                      percentage <= 50 && "bg-green-50"
+                    )}
+                    indicatorClassName={cn(
+                      "transition-colors duration-500",
+                      percentage > 100 && "bg-red-500 animate-pulse",
+                      percentage > 90 && percentage <= 100 && "bg-red-400",
+                      percentage > 75 && percentage <= 90 && "bg-orange-400",
+                      percentage > 50 && percentage <= 75 && "bg-yellow-400",
+                      percentage <= 50 && "bg-green-400",
+                      "shadow-sm"
+                    )}
                   />
 
                   <div className="flex gap-2 pt-1">
