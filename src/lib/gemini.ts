@@ -49,27 +49,29 @@ export async function processInvoiceWithGemini(file: File): Promise<ProcessedRec
     // Different prompts for receipt vs invoice
     const prompt = isReceipt ? 
       `Analyze this receipt and extract ONLY:
-      1. The final total amount
+      1. The final total amount (as a negative number since it's an expense)
       2. The store/merchant name
       3. The type of purchase (categorize as one of: food, shopping, entertainment, utilities, transport, other)
 
       Format your response as a simple JSON object like this, nothing else:
       {
-        "amount": number,
+        "amount": -number,  // Always negative for expenses
         "merchant": "string",
         "category": "string"
       }` :
-      `Analyze this document and extract ALL transactions/expenses.
-      For each expense, provide:
-      - Amount
+      `Analyze this credit card statement and extract ALL transactions.
+      For each transaction:
+      - Amount (make expenses negative, keep income positive)
       - Description
       - Category (classify as one of: food, shopping, entertainment, utilities, transport, other)
+
+      Important: All expenses/purchases should have negative amounts, only income/credits should be positive.
 
       Format your response as a JSON object like this, nothing else:
       {
         "transactions": [
           {
-            "amount": number,
+            "amount": -number,  // Negative for expenses, positive for income
             "description": "string",
             "category": "string"
           }
@@ -121,7 +123,7 @@ export async function processInvoiceWithGemini(file: File): Promise<ProcessedRec
           }
           
           const processedReceipt: ProcessedReceipt = {
-            amount: -Math.abs(Number(parsedData.amount)), // Make it negative since it's an expense
+            amount: parsedData.amount, // Keep original sign
             description: String(parsedData.merchant).trim(),
             categoryId: mapCategoryNameToId(parsedData.merchant),
             paymentMethod: 'card',
@@ -137,10 +139,10 @@ export async function processInvoiceWithGemini(file: File): Promise<ProcessedRec
           }
           
           return parsedData.transactions.map(tx => ({
-            amount: -Math.abs(Number(tx.amount)), // Make it negative since it's an expense
+            amount: Number(tx.amount) > 0 ? Number(tx.amount) : -Math.abs(Number(tx.amount)), // Ensure expenses are negative
             description: String(tx.description).trim(),
-            categoryId: mapCategoryNameToId(tx.description),
-            paymentMethod: 'card',
+            categoryId: tx.amount > 0 ? 'income' : mapCategoryNameToId(tx.description), // Use 'income' category for positive amounts
+            paymentMethod: 'bank',
             date: new Date().toISOString()
           }));
         }

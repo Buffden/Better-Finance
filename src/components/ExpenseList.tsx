@@ -15,27 +15,24 @@ import {
 } from "@/components/ui/select";
 import { formatDistance } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Wallet } from "lucide-react";
 
 interface ExpenseListProps {
   expenses: Expense[];
   categories: Category[];
   limit?: number;
-  onUpdateCategory?: (expenseId: string, newCategoryId: string) => void;
   showCategorySelect?: boolean;
+  onUpdateCategory?: (expenseId: string, categoryId: string) => void;
 }
 
 const ExpenseList = ({ 
   expenses, 
   categories, 
   limit,
+  showCategorySelect = false,
   onUpdateCategory,
-  showCategorySelect = false
 }: ExpenseListProps) => {
-  const sortedExpenses = useMemo(() => {
-    return [...expenses]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, limit);
-  }, [expenses, limit]);
+  const displayExpenses = limit ? expenses.slice(0, limit) : expenses;
 
   const getCategoryName = (categoryId: string) => {
     return categories.find((c) => c.id === categoryId)?.name || "Unknown";
@@ -67,66 +64,59 @@ const ExpenseList = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {sortedExpenses.length > 0 ? (
+        {displayExpenses.length > 0 ? (
           <div className="space-y-4">
-            {sortedExpenses.map((expense) => (
-              <div
-                key={expense.id}
-                className="flex items-center justify-between p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white"
-                    style={{ backgroundColor: getCategoryColor(expense.categoryId) }}
-                  >
-                    {getCategoryName(expense.categoryId).charAt(0)}
+            {displayExpenses.map((expense) => {
+              const category = categories.find(c => c.id === expense.categoryId);
+              return (
+                <div
+                  key={expense.id}
+                  className="flex items-center justify-between p-3 bg-white border rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${
+                      category?.color || 'bg-gray-500'
+                    }`}>
+                      {expense.categoryId === 'income' ? (
+                        <Wallet className="w-4 h-4" />
+                      ) : (
+                        <div className="w-4 h-4 text-center">
+                          {category?.name.charAt(0) || '?'}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{expense.description}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(expense.date || '').toLocaleDateString()} • {expense.paymentMethod}
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-3">
-                    <p className="font-medium text-gray-900">
-                      {expense.description || getCategoryName(expense.categoryId)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatDateDistance(expense.date)} • {expense.paymentMethod}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  {showCategorySelect && onUpdateCategory ? (
-                    <Select
-                      value={expense.categoryId}
-                      onValueChange={(value) => onUpdateCategory(expense.id, value)}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue>{getCategoryName(expense.categoryId)}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            <div className="flex items-center">
-                              <span
-                                className="w-2 h-2 rounded-full mr-2"
-                                style={{ backgroundColor: category.color }}
-                              />
+                  <div className="flex items-center gap-4">
+                    {showCategorySelect && (
+                      <Select
+                        value={expense.categoryId}
+                        onValueChange={(value) => onUpdateCategory?.(expense.id, value)}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
                               {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="text-sm text-gray-600">
-                      {getCategoryName(expense.categoryId)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <span className={`font-medium ${expense.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {expense.amount > 0 ? '+' : '-'}${Math.abs(expense.amount).toFixed(2)}
                     </span>
-                  )}
-                  <span className={cn(
-                    "font-semibold",
-                    expense.amount >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
-                    {formatCurrency(expense.amount)}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-6 text-gray-500">

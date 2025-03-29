@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Expense, Category, Budget } from "@/types/finance";
 import ExpenseOverview from "./ExpenseOverview";
 import ExpenseList from "./ExpenseList";
 import BudgetManager from "./BudgetManager";
 import AIInsights from "./AIInsights";
-import { Upload, Plus, Loader2 } from "lucide-react";
+import { Upload, Plus, Loader2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface DashboardProps {
   expenses: Expense[];
@@ -17,6 +19,7 @@ interface DashboardProps {
   onUpdateExpense?: (expenseId: string, updates: Partial<Expense>) => void;
   activeView: string;
   isProcessing: boolean;
+  onUpdateCategory: (expenseId: string, categoryId: string) => void;
 }
 
 const Dashboard = ({
@@ -29,10 +32,18 @@ const Dashboard = ({
   onUpdateExpense,
   activeView,
   isProcessing,
+  onUpdateCategory,
 }: DashboardProps) => {
-  const totalExpenses = useMemo(() => {
-    return expenses.reduce((total, expense) => total + Math.abs(expense.amount), 0);
-  }, [expenses]);
+  const [isEditingIncome, setIsEditingIncome] = useState(false);
+  const [editedIncome, setEditedIncome] = useState("0");
+
+  const totalExpenses = expenses
+    .filter(expense => expense.amount < 0)
+    .reduce((total, expense) => total + Math.abs(expense.amount), 0);
+
+  const totalIncome = expenses
+    .filter(expense => expense.amount > 0)
+    .reduce((total, expense) => total + expense.amount, 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -40,7 +51,7 @@ const Dashboard = ({
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(Math.abs(amount));
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,6 +65,27 @@ const Dashboard = ({
     if (onUpdateExpense) {
       onUpdateExpense(expenseId, { categoryId: newCategoryId });
     }
+  };
+
+  const handleIncomeEdit = () => {
+    setEditedIncome(totalIncome.toString());
+    setIsEditingIncome(true);
+  };
+
+  const handleIncomeSave = () => {
+    const newIncome = parseFloat(editedIncome);
+    if (!isNaN(newIncome)) {
+      // Update the income in expenses
+      const incomeExpense = expenses.find(e => e.categoryId === 'income');
+      if (incomeExpense) {
+        incomeExpense.amount = newIncome;
+      }
+    }
+    setIsEditingIncome(false);
+  };
+
+  const handleIncomeCancel = () => {
+    setIsEditingIncome(false);
   };
 
   return (
@@ -76,9 +108,53 @@ const Dashboard = ({
             {activeView === "insights" && "AI Insights"}
           </h1>
           {activeView === "dashboard" && (
-            <p className="mt-2 text-lg text-gray-600">
-              Total Expenses: <span className="font-semibold text-red-600">{formatCurrency(totalExpenses)}</span>
-            </p>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-lg text-gray-600">
+                  Total Income: {!isEditingIncome ? (
+                    <span className="font-semibold text-green-600">{formatCurrency(totalIncome)}</span>
+                  ) : (
+                    <div className="inline-flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={editedIncome}
+                        onChange={(e) => setEditedIncome(e.target.value)}
+                        className="w-32 h-8"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={handleIncomeSave}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={handleIncomeCancel}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </p>
+                {!isEditingIncome && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleIncomeEdit}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-lg text-gray-600">
+                Total Expenses: <span className="font-semibold text-red-600">{formatCurrency(totalExpenses)}</span>
+              </p>
+            </div>
           )}
         </div>
         <div className="flex gap-3">
