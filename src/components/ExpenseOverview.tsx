@@ -1,4 +1,3 @@
-
 import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Expense, Category } from "@/types/finance";
@@ -11,26 +10,49 @@ interface ExpenseOverviewProps {
 
 const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
   const chartData = useMemo(() => {
-    const categoryTotals = expenses.reduce((acc, expense) => {
+    // Separate credits and debits
+    const credits = expenses.filter(exp => exp.amount > 0);
+    const debits = expenses.filter(exp => exp.amount < 0);
+
+    // Calculate category totals for debits (expenses)
+    const categoryTotals = debits.reduce((acc, expense) => {
       const categoryId = expense.categoryId;
       if (!acc[categoryId]) {
         acc[categoryId] = 0;
       }
-      acc[categoryId] += expense.amount;
+      acc[categoryId] += Math.abs(expense.amount);
       return acc;
     }, {} as Record<string, number>);
 
-    return categories.map((category) => ({
+    // Calculate total income
+    const totalIncome = credits.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Create data for expenses by category
+    const expenseData = categories.map((category) => ({
       name: category.name,
       value: categoryTotals[category.id] || 0,
       color: category.color,
       id: category.id,
+      type: 'expense'
     })).filter(item => item.value > 0);
+
+    // Add income data if there is any
+    if (totalIncome > 0) {
+      expenseData.push({
+        name: 'Income',
+        value: totalIncome,
+        color: '#22c55e', // Green color for income
+        id: 'income',
+        type: 'income'
+      });
+    }
+
+    return expenseData;
   }, [expenses, categories]);
 
-  const totalExpense = useMemo(() => {
-    return expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  }, [expenses]);
+  const totalAmount = useMemo(() => {
+    return chartData.reduce((sum, item) => sum + item.value, 0);
+  }, [chartData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -48,7 +70,7 @@ const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
         <div className="bg-white p-3 shadow-md rounded-md border">
           <p className="font-semibold">{data.name}</p>
           <p className="text-sm">
-            {formatCurrency(data.value)} ({((data.value / totalExpense) * 100).toFixed(1)}%)
+            {formatCurrency(data.value)} ({((data.value / totalAmount) * 100).toFixed(1)}%)
           </p>
         </div>
       );
@@ -59,7 +81,7 @@ const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Expense Breakdown</CardTitle>
+        <CardTitle>Financial Overview</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -84,7 +106,7 @@ const ExpenseOverview = ({ expenses, categories }: ExpenseOverviewProps) => {
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500">
-              No expenses recorded yet
+              No transactions recorded yet
             </div>
           )}
         </div>
