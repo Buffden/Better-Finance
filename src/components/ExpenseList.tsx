@@ -6,6 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatDistance } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +20,17 @@ interface ExpenseListProps {
   expenses: Expense[];
   categories: Category[];
   limit?: number;
+  onUpdateCategory?: (expenseId: string, newCategoryId: string) => void;
+  showCategorySelect?: boolean;
 }
 
-const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
+const ExpenseList = ({ 
+  expenses, 
+  categories, 
+  limit,
+  onUpdateCategory,
+  showCategorySelect = false
+}: ExpenseListProps) => {
   const sortedExpenses = useMemo(() => {
     return [...expenses]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -47,7 +62,9 @@ const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Transactions</CardTitle>
+        <CardTitle>
+          {limit ? "Recent Transactions" : "All Expenses"}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {sortedExpenses.length > 0 ? (
@@ -73,12 +90,41 @@ const ExpenseList = ({ expenses, categories, limit }: ExpenseListProps) => {
                     </p>
                   </div>
                 </div>
-                <span className={cn(
-                  "font-semibold",
-                  expense.amount >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {formatCurrency(expense.amount)}
-                </span>
+                <div className="flex items-center space-x-4">
+                  {showCategorySelect && onUpdateCategory ? (
+                    <Select
+                      value={expense.categoryId}
+                      onValueChange={(value) => onUpdateCategory(expense.id, value)}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue>{getCategoryName(expense.categoryId)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center">
+                              <span
+                                className="w-2 h-2 rounded-full mr-2"
+                                style={{ backgroundColor: category.color }}
+                              />
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-sm text-gray-600">
+                      {getCategoryName(expense.categoryId)}
+                    </span>
+                  )}
+                  <span className={cn(
+                    "font-semibold",
+                    expense.amount >= 0 ? "text-green-600" : "text-red-600"
+                  )}>
+                    {formatCurrency(expense.amount)}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

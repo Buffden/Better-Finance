@@ -2,6 +2,7 @@ import { Category } from "@/types/finance";
 
 export const defaultCategories: Category[] = [
   { id: "food", name: "Food & Dining", color: "#ef4444", defaultBudget: 500 },
+  { id: "grocery", name: "Groceries", color: "#84cc16", defaultBudget: 400 },
   { id: "rent", name: "Housing & Rent", color: "#3b82f6", defaultBudget: 1200 },
   { id: "transport", name: "Transportation", color: "#22c55e", defaultBudget: 300 },
   { id: "utilities", name: "Utilities", color: "#f59e0b", defaultBudget: 200 },
