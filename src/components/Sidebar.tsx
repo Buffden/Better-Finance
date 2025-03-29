@@ -1,4 +1,3 @@
-
 import { Home, PieChart, Receipt, Lightbulb, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,15 +62,6 @@ const Sidebar = ({ activeView, setActiveView }: SidebarProps) => {
           ))}
         </ul>
       </nav>
-
-      <div className="mt-auto pt-8">
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800">AI Assistant</h3>
-          <p className="text-xs text-blue-600 mt-1">
-            Your expenses are 15% higher than last month. Need help with budgeting?
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

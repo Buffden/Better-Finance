@@ -93,7 +93,7 @@ const ExpenseList = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    {showCategorySelect && (
+                    {showCategorySelect && expense.amount < 0 && (
                       <Select
                         value={expense.categoryId}
                         onValueChange={(value) => onUpdateCategory?.(expense.id, value)}

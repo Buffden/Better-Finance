@@ -62,7 +62,7 @@ export default function ExpenseOverview({ expenses, categories }: ExpenseOvervie
                 const percentage = (item.amount / total) * 100;
                 
                 // Calculate the stroke-dasharray and stroke-dashoffset
-                const circumference = 2 * Math.PI * 16; // radius is 16
+                const circumference = 2 * Math.PI * 25;
                 const strokeDasharray = circumference;
                 const strokeDashoffset = circumference * (1 - percentage / 100);
                 
@@ -77,10 +77,10 @@ export default function ExpenseOverview({ expenses, categories }: ExpenseOvervie
                     key={item.categoryId}
                     cx="50"
                     cy="50"
-                    r="16"
+                    r="25"
                     fill="none"
                     stroke={item.category?.color || '#gray'}
-                    strokeWidth="32"
+                    strokeWidth="25"
                     strokeDasharray={strokeDasharray}
                     strokeDashoffset={strokeDashoffset}
                     style={{
